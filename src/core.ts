@@ -247,11 +247,24 @@ export function compute<Result>(
   currentScope = scope;
   currentObserver = observer;
 
+  let comp;
   try {
-    return compute.call(scope);
+    comp = compute.call(scope);
   } finally {
+    if (comp?.then) return (new Promise((res, rej) => {
+      comp.then((val) => res(val));
+      comp.catch((err) => rej(err));
+      
+      comp.finally(() => {
+        currentScope = prevScope;
+        currentObserver = prevObserver;
+      })
+    }) as Result)
+
     currentScope = prevScope;
     currentObserver = prevObserver;
+
+    return comp;
   }
 }
 
